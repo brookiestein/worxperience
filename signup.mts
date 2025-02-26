@@ -4,6 +4,7 @@ const usernameInput: HTMLInputElement = document.getElementById("usernameInput")
 const passwordInput: HTMLInputElement = document.getElementById("passwordInput") as HTMLInputElement;
 const confirmPasswordInput: HTMLInputElement = document.getElementById("confirmPasswordInput") as HTMLInputElement;
 const registerButton: HTMLButtonElement = document.getElementById("registerButton") as HTMLButtonElement;
+const backButton: HTMLButtonElement = document.getElementById("backButton") as HTMLButtonElement;
 const statusMessage: HTMLParagraphElement = document.getElementById("statusMessage") as HTMLParagraphElement;
 const savedTheme: string = localStorage.getItem("theme") || "";
 let timeout: ReturnType<typeof setTimeout>;
@@ -36,9 +37,8 @@ if (switchThemeButton.checked) {
 }
 
 registerForm.addEventListener("submit", (e) => { e.preventDefault(); });
-
+backButton.addEventListener("click", () => { history.back(); });
 switchThemeButton.addEventListener("click", switchTheme);
-
 passwordInput.addEventListener("input", checkPasswords);
 confirmPasswordInput.addEventListener("input", checkPasswords);
 registerButton.addEventListener("click", async () => {

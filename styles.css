@@ -10,7 +10,7 @@
     color: red;
 }
 
-#signinButton, #signupButton, #registerButton {
+#signinButton, #signupButton, #registerButton, #backButton {
     background-color: #26d9ba;
     color: black;
 }
