@@ -1,0 +1,16 @@
+.divider:after,
+.divider:before {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: #eee;
+}
+
+#statusMessage {
+    color: red;
+}
+
+#signinButton, #signupButton {
+    background-color: #26d9ba;
+    color: black;
+}
