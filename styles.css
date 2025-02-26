@@ -10,7 +10,11 @@
     color: red;
 }
 
-#signinButton, #signupButton {
+#signinButton, #signupButton, #registerButton {
     background-color: #26d9ba;
     color: black;
+}
+
+.buttonHover:hover {
+    background-color: #b96bed !important;
 }

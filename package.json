@@ -2,17 +2,20 @@
   "name": "bootstrap",
   "version": "1.0.0",
   "description": "Learning Bootstrap",
-  "main": "index.js",
+  "main": "index.mjs",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Brayan M. Salazar",
   "license": "MIT",
   "dependencies": {
+    "axios": "^1.7.9",
     "bootstrap": "^5.3.3",
     "express": "^4.21.2"
   },
   "devDependencies": {
+    "@types/axios": "^0.9.36",
+    "@types/express": "^5.0.0",
     "@types/node": "^22.13.5"
   }
 }
