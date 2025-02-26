@@ -6,7 +6,6 @@ const passwordInput: HTMLInputElement = document.getElementById("passwordInput")
 const signinButton: HTMLButtonElement = document.getElementById("signinButton") as HTMLButtonElement;
 const signupButton: HTMLButtonElement = document.getElementById("signupButton") as HTMLButtonElement;
 
-const statusMessage: HTMLParagraphElement = document.getElementById("statusMessage") as HTMLParagraphElement;
 const savedTheme: string = localStorage.getItem("theme") || "";
 let timeout: ReturnType<typeof setTimeout>;
 
@@ -23,6 +22,35 @@ const switchTheme = () => {
     }
 };
 
+const showMessage = (message: string) => {
+    const container: HTMLDivElement = document.getElementById("statusMessage") as HTMLDivElement;
+
+    while (container.firstChild) {
+        container.removeChild(container.lastChild as ChildNode);
+    }
+
+    const close = () => {
+        container.removeChild(p);
+        container.removeChild(closeButton);
+        container.classList.remove("show");
+    };
+
+    const p: HTMLParagraphElement = document.createElement("p");
+    const closeButton: HTMLButtonElement = document.createElement("button");
+    closeButton.addEventListener("click", close);
+
+    container.classList.add("show");
+    closeButton.classList.add("btn-close");
+
+    p.textContent = message;
+
+    container.appendChild(p);
+    container.appendChild(closeButton);
+
+    clearTimeout(timeout);
+    timeout = setTimeout(close, 3000);
+};
+
 switchThemeButton.checked = savedTheme === "dark";
 if (switchThemeButton.checked) {
     switchTheme();
@@ -32,14 +60,12 @@ switchThemeButton.addEventListener("click", switchTheme);
 signinButton.addEventListener("click", async () => {
     clearTimeout(timeout);
     if (usernameInput.value === "") {
-        statusMessage.textContent = "Username is required.";
-        timeout = setTimeout(() => {statusMessage.textContent = ""}, 3000);
+        showMessage("Username is required.");
         return;
     }
 
     if (passwordInput.value === "") {
-        statusMessage.textContent = "Password is required.";
-        timeout = setTimeout(() => {statusMessage.textContent = ""}, 3000);
+        showMessage("Password is required.");
         return;
     }
 
@@ -50,12 +76,9 @@ signinButton.addEventListener("click", async () => {
     .then((response) => {
         usernameInput.value = "";
         passwordInput.value = "";
+        showMessage("Access Granted!");
     })
     .catch((error) => {
-        statusMessage.textContent = "We're so sorry, something wrong happened on out behalf.";
+        showMessage(error.response.data.message);
     });
-});
-
-signupButton.addEventListener("click", async () => {
-    window.location.href = "signup.html";
 });

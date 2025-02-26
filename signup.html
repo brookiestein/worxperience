@@ -20,7 +20,7 @@
                     <div class="form-check form-switch">
                         <input class="form-check-input" type="checkbox" role="switch" id="switchThemeButton">
                         <label class="form-check-label" for="switchThemeButton">
-                            <i class="bi bi-brightness-high"></i>Dark Theme
+                            Dark Theme
                         </label>
                     </div>
                 </div>
@@ -36,7 +36,12 @@
                         <h2 class="fw-bold mb-2 text-uppercase">Enjoy this new experience!</h2>
                         <form id="registerForm">
                             <div data-mdb-input-init class="form-outline mb-4">
-                                <label for="usernameInput" class="form-label">Username</label>
+                                <label for="personalIdInput" class="form-label">Personal ID</label>
+                                <input type="text" id="personalIdInput" class="form-control form-control-lg">
+                            </div>
+
+                            <div data-mdb-input-init class="form-outline mb-4">
+                                <label for="usernameInput" class="form-label">Full name</label>
                                 <input type="text" id="usernameInput" class="form-control form-control-lg">
                             </div>
 
@@ -50,14 +55,19 @@
                                 <input type="password" id="confirmPasswordInput" class="form-control form-control-lg">
                             </div>
 
-                            <div class="container">
+                            <div data-mdb-input-init class="form-outline mb-4">
+                                <label for="pricePerHourInput" class="form-label">Price Per Hour</label>
+                                <input type="number" min="1" id="pricePerHourInput" class="form-control form-control-lg">
+                            </div>
+
+                            <div class="container-fluid">
                                 <div class="row">
-                                    <div class="col-12 col-md-6">
+                                    <div class="col-lg">
                                         <button type="submit" data-mdb-button-init data-mdb-ripple-init id="registerButton" class="btn btn-primary btn-lg w-100 buttonHover">
                                         Register
                                         </button>
                                     </div>
-                                    <div class="col-12 col-md-6">
+                                    <div class="col-lg">
                                         <button data-mdb-button-init data-mdb-ripple-init id="backButton" class="btn btn-secondary btn-lg w-100 buttonHover">
                                             Back
                                         </button>
@@ -65,8 +75,9 @@
                                 </div>
                             </div>
                         </form>
-                        <div>
-                            <p id="statusMessage"></p>
+                        <div class="m-4">
+                            <div class="alert alert-info alert-dismissible fade" id="statusMessage">
+                            </div>
                         </div>
                     </div>
                 </div>

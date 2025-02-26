@@ -6,10 +6,6 @@
     background: #eee;
 }
 
-#statusMessage {
-    color: red;
-}
-
 #signinButton, #signupButton, #registerButton, #backButton {
     background-color: #26d9ba;
     color: black;
