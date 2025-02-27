@@ -26,7 +26,7 @@ type User = {
     id: number;
     username: string;
     password: string;
-    refresh_token: string
+    refresh_token: string | undefined
 };
 
 const users: User[] = [];
@@ -50,6 +50,24 @@ const checkUserData = (request: Request, response: Response): boolean => {
     }
 
     return true;
+};
+
+const createToken = (userData: User): [string, string] => {
+    const access_token: string = jwt.sign({
+        id: userData.id,
+        username: userData.username,
+        password: userData.password
+    }, process.env.ACCESS_TOKEN_SECRET || "", {
+        expiresIn: "15m"
+    });
+
+    const refresh_token: string = jwt.sign({
+        username: userData.username
+    }, process.env.REFRESH_TOKEN_SECRET || "", {
+        expiresIn: "1d"
+    });
+
+    return [access_token, refresh_token];
 };
 
 const verifyToken = (token: string): number => {
@@ -110,10 +128,11 @@ app.get("/home", (request: Request, response: Response) => {
         return;
     }
 
-    if (verifyToken(access_token) === 200) {
-        response.status(200).sendFile(join(__dirname, "home.html"));
+    const resultCode = verifyToken(access_token);
+    if (resultCode === 200) {
+        response.status(resultCode).sendFile(join(__dirname, "home.html"));
     } else {
-        response.status(401).json({success: false, message: "Unauthorized: Invalid token"});
+        response.redirect("/");
     }
 });
 
@@ -137,18 +156,11 @@ app.post("/auth/login", async (request: Request, response: Response) => {
         return;
     }
 
-    const access_token: string = jwt.sign({
+    const [access_token, refresh_token] = createToken({
         id: employee.id,
         username: username,
-        password: hashedPassword
-    }, process.env.ACCESS_TOKEN_SECRET || "", {
-        expiresIn: "15m"
-    });
-
-    const refresh_token: string = jwt.sign({
-        username: username
-    }, process.env.REFRESH_TOKEN_SECRET || "", {
-        expiresIn: "1d"
+        password: hashedPassword,
+        refresh_token: undefined
     });
 
     response.cookie("jwt", refresh_token, {
