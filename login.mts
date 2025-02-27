@@ -12,6 +12,12 @@ let timeout: ReturnType<typeof setTimeout>;
 const loginForm: HTMLFormElement = document.getElementById("loginForm") as HTMLFormElement;
 loginForm.addEventListener("submit", (e) => { e.preventDefault(); });
 
+interface Response {
+    success: boolean,
+    message: string,
+    token: string,
+};
+
 const switchTheme = () => {
     if (switchThemeButton.checked) {
         document.documentElement.setAttribute("data-bs-theme", "dark");
@@ -69,16 +75,28 @@ signinButton.addEventListener("click", async () => {
         return;
     }
 
-    await axios.post("/login", {
+    let token: string = "";
+    let expiresOn: string = "";
+    await axios.post<Response>("/auth/login", {
         "username": usernameInput.value,
         "password": passwordInput.value
-    })
-    .then((response) => {
+    }).then((response) => {
         usernameInput.value = "";
         passwordInput.value = "";
         showMessage("Access Granted!");
-    })
-    .catch((error) => {
+        token = (response.data as Response).token || "";
+    }).catch((error) => {
         showMessage(error.response.data.message);
     });
+
+    /* Not authorized. */
+    if (token === "") {
+        return;
+    }
+
+    document.cookie = `access_token = ${token}`;
+
+    axios.get("/home")
+        .then((response) => window.location.href = "/home")
+        .catch((error) => window.location.href = "/");
 });

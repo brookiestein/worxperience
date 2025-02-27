@@ -4,7 +4,6 @@ const personalIdInput: HTMLInputElement = document.getElementById("personalIdInp
 const usernameInput: HTMLInputElement = document.getElementById("usernameInput") as HTMLInputElement;
 const passwordInput: HTMLInputElement = document.getElementById("passwordInput") as HTMLInputElement;
 const confirmPasswordInput: HTMLInputElement = document.getElementById("confirmPasswordInput") as HTMLInputElement;
-const pricePerHourInput: HTMLInputElement = document.getElementById("pricePerHourInput") as HTMLInputElement;
 const registerButton: HTMLButtonElement = document.getElementById("registerButton") as HTMLButtonElement;
 const backButton: HTMLButtonElement = document.getElementById("backButton") as HTMLButtonElement;
 const savedTheme: string = localStorage.getItem("theme") || "";
@@ -93,19 +92,10 @@ registerButton.addEventListener("click", async () => {
         return;
     }
 
-    if (pricePerHourInput.value === "") {
-        showMessage("Price Per Hour is required.");
-        return;
-    } else if (isNaN(parseInt(pricePerHourInput.value))) {
-        showMessage("Price Per Hour is invalid.");
-        return;
-    }
-
-    axios.post("/user", {
+    axios.post("/auth/register", {
         "personalId": personalIdInput.value,
         "username": usernameInput.value,
         "password": passwordInput.value,
-        "pricePerHour": pricePerHourInput.value
     })
     .then((response) => {
         showMessage(`Employee ${usernameInput.value} successfully created!`);
@@ -113,7 +103,6 @@ registerButton.addEventListener("click", async () => {
         usernameInput.value = "";
         passwordInput.value = "";
         confirmPasswordInput.value = "";
-        pricePerHourInput.value = "";
     })
     .catch((error) => {
         if (error.response.data.message.includes("unique")) {
