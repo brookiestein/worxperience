@@ -12,9 +12,9 @@ const __dirname = dirname(fileURLToPath(import.meta.url)); const port: number = 
 const app = express();
 
 const client = await connect({
-    "database": "workxperience",
-    "password": "Brayan*Developer01",
-    "user": "brayan"
+    "database": process.env.DATABASE || "",
+    "password": process.env.DBPASSWORD || "",
+    "user": process.env.DBUSER || ""
 });
 
 interface Employee {
