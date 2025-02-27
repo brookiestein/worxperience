@@ -109,6 +109,10 @@ app.get("/signup.mjs", (request: Request, response: Response) => {
     response.sendFile(join(__dirname, "signup.mjs"));
 });
 
+app.get("/home.mjs", (request: Request, response: Response) => {
+    response.sendFile(join(__dirname, "home.mjs"));
+});
+
 app.get("/styles.css", (request: Request, response: Response) => {
     response.sendFile(join(__dirname, "styles.css"));
 });
@@ -121,6 +125,10 @@ app.get("/imgs/signup.svg", (request: Request, response: Response) => {
     response.sendFile(join(__dirname, "imgs/signup.svg"));
 });
 
+app.get("/imgs/show-employees.svg", (request: Request, response: Response) => {
+    response.sendFile(join(__dirname, "imgs/show-employees.svg"));
+});
+
 app.get("/home", (request: Request, response: Response) => {
     const access_token = request.cookies.access_token;
     if (!access_token) {
@@ -131,6 +139,21 @@ app.get("/home", (request: Request, response: Response) => {
     const resultCode = verifyToken(access_token);
     if (resultCode === 200) {
         response.status(resultCode).sendFile(join(__dirname, "home.html"));
+    } else {
+        response.redirect("/");
+    }
+});
+
+app.get("/employees", (request: Request, response: Response) => {
+    const access_token = request.cookies.access_token;
+    if (!access_token) {
+        response.status(401).sendFile(join(__dirname, "index.html"));
+        return;
+    }
+
+    const resultCode = verifyToken(access_token);
+    if (resultCode === 200) {
+        response.status(resultCode).sendFile(join(__dirname, "employees.html"));
     } else {
         response.redirect("/");
     }

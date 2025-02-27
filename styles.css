@@ -3,6 +3,17 @@
     color: black;
 }
 
+#showEmployeesButton {
+    appearance: none;
+    border: none;
+    background-color: inherit;
+    transition: transform 0.7s ease-in-out;
+}
+
+#showEmployeesButton:hover {
+    transform: rotate(360deg);
+}
+
 .buttonHover:hover {
     background-color: #b96bed !important;
 }
