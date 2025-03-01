@@ -1,5 +1,6 @@
 const switchThemeButton: HTMLInputElement = document.getElementById("switchThemeButton") as HTMLInputElement;
-const showEmployeesButton: HTMLButtonElement = document.getElementById("showEmployeesButton") as HTMLButtonElement;
+const username: HTMLHeadingElement = document.getElementById("username") as HTMLHeadingElement;
+const toggleSidebarBtn: HTMLButtonElement = document.getElementById("toggleSidebarBtn") as HTMLButtonElement;
 const savedTheme: string = localStorage.getItem("theme") || "";
 
 const switchTheme = () => {
@@ -17,10 +18,6 @@ if (switchThemeButton.checked) {
     switchTheme();
 }
 
-switchThemeButton.addEventListener("click", switchTheme);
+username.textContent = localStorage.getItem("username") || "";
 
-showEmployeesButton.addEventListener("click", () => {
-    axios.get("/employees")
-        .then((response) => window.location.href = "/employees")
-        .catch((error) => window.location.href = "/");
-});
+switchThemeButton.addEventListener("click", switchTheme);

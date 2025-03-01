@@ -4,9 +4,10 @@ import path from "node:path";
 import {Request, Response} from "express";
 import {fileURLToPath} from "url";
 import {join, dirname} from "node:path";
-import {connect} from "ts-postgres";
+import {connect, DatabaseError} from "ts-postgres";
 import {sha512} from "js-sha512";
 import jwt, {VerifyErrors, JwtPayload} from "jsonwebtoken";
+import Joi from "joi";
 
 const __dirname = dirname(fileURLToPath(import.meta.url)); const port: number = 8000;
 const app = express();
@@ -75,10 +76,10 @@ const verifyToken = (token: string): number => {
     jwt.verify(token, process.env.ACCESS_TOKEN_SECRET || "",
             (error: VerifyErrors | null, decoded: string | JwtPayload | undefined) => {
         if (error) {
-            return result = 401;
+            result = 401;
+        } else {
+            result = 200;
         }
-
-        result = 200;
     });
 
     return result;
@@ -90,7 +91,8 @@ app.use(cookieParser());
 
 app.get("/", (request: Request, response: Response) => {
     const access_token = request.cookies.access_token;
-    if (access_token) {
+    if (access_token && verifyToken(access_token) === 200) {
+        console.log("User is already authenticated, redirecting them to /home.");
         response.redirect("/home");
     } else {
         response.sendFile(join(__dirname, "index.html"));
@@ -140,6 +142,7 @@ app.get("/home", (request: Request, response: Response) => {
     if (resultCode === 200) {
         response.status(resultCode).sendFile(join(__dirname, "home.html"));
     } else {
+        console.log("User needs to authenticate again!");
         response.redirect("/");
     }
 });
@@ -166,21 +169,43 @@ app.post("/auth/login", async (request: Request, response: Response) => {
 
     const {username, password} = request.body;
 
-    const result = await client.query<Employee>("SELECT id, password FROM Employee WHERE fullname = $1", [username]);
-    const employee = [...result][0];
-    if (!employee) {
+    const schema = Joi.object({
+        username: Joi.string()
+                    .alphanum()
+                    .min(3)
+                    .max(30)
+                    .required()
+    });
+
+    const {error, value} = schema.validate({username: username});
+    if (error) {
+        response.status(401).json({success: false, message: "Username is invalid."});
+        return;
+    }
+
+    let userId: number = -1;
+    let dbPassword: string = "";
+    const statement = await client.prepare("SELECT id, password FROM Employee WHERE fullname = $1");
+    for await (const object of statement.execute([username])) {
+        userId = object.id;
+        dbPassword = object.password;
+    }
+
+    if (userId < 0) {
         response.status(404).json({success: false, message: `Employee ${username} not found!`});
         return;
     }
 
     const hashedPassword: string = hash(password);
-    if (employee.password !== hashedPassword) {
+    if (dbPassword !== hashedPassword) {
         response.status(401).json({success: false, message: "Credentials are incorrect."});
         return;
     }
 
+    await statement.close();
+
     const [access_token, refresh_token] = createToken({
-        id: employee.id,
+        id: userId,
         username: username,
         password: hashedPassword,
         refresh_token: undefined
@@ -205,7 +230,7 @@ app.post("/auth/login", async (request: Request, response: Response) => {
         user.refresh_token = refresh_token;
     } else {
         users.push({
-            id: employee.id,
+            id: userId,
             username: username,
             password: hashedPassword,
             refresh_token: refresh_token
@@ -261,16 +286,44 @@ app.post("/auth/register", async (request: Request, response: Response) => {
 
     const username: string = request.body.username;
     const personalId: string = request.body.personalId;
-    const password: string = hash(request.body.password);
+    const password: string = request.body.password;
 
-    await client.query(
-        "INSERT INTO Employee (personalId, fullname, password) VALUES ($1, $2, $3);",
-        [personalId, username, password]
-    ).then(() => {
-        response.status(201).json({success: true, message: `Employee ${username} successfully created!`});
-    }).catch((error) => {
-        response.status(400).json({success: false, message: error.message});
+    const schema = Joi.object({
+        username: Joi.string()
+                    .alphanum()
+                    .min(3)
+                    .max(30)
+                    .required(),
+        password: Joi.string()
+                    .pattern(new RegExp("^[a-zA-Z0-9]{3,30}$"))
+                    .required(),
+        repeat_password: Joi.ref("password"),
+        personalId: Joi.string()
+                    .pattern(new RegExp("[0-9]{3}-?[[0-9]]{7}-?[0-9]"))
+                    .required()
     });
+
+    const {error, value} = schema.validate({
+        username: username,
+        password: password,
+        personalId: personalId
+    });
+
+    if (error) {
+        response.status(400).json({success: false, message: "User data is invalid."});
+        return;
+    }
+
+    const hashedPassword: string = hash(password);
+    const statement = await client.prepare("INSERT INTO Employee (personalId, fullname, password) VALUES ($1, $2, $3)");
+    for await (const object of statement.execute([personalId, username, hashedPassword])) {
+        if (object instanceof DatabaseError) {
+            response.status(400).json({success: false, message: object.message});
+            return;
+        }
+    }
+
+    response.status(201).json({success: true, message: `Employee ${username} successfully created!`});
 });
 
 process.on("exit", async () => {

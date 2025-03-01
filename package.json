@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Learning Bootstrap",
   "main": "server.mjs",
+  "type": "module",
   "scripts": {
     "dev": "nodemon --env-file=.env --ext ts --exec tsx server.mts",
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -14,6 +15,7 @@
     "bootstrap": "^5.3.3",
     "cookie-parser": "^1.4.7",
     "express": "^4.21.2",
+    "joi": "^17.13.3",
     "js-sha512": "^0.9.0",
     "jsonwebtoken": "^9.0.2",
     "ts-postgres": "^2.0.4"

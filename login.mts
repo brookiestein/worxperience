@@ -75,10 +75,11 @@ signinButton.addEventListener("click", async () => {
         return;
     }
 
+    const username = usernameInput.value;
     let token: string = "";
     let expiresOn: string = "";
     await axios.post<Response>("/auth/login", {
-        "username": usernameInput.value,
+        "username": username,
         "password": passwordInput.value
     }).then((response) => {
         usernameInput.value = "";
@@ -95,6 +96,7 @@ signinButton.addEventListener("click", async () => {
     }
 
     document.cookie = `access_token = ${token}`;
+    localStorage.setItem("username", username);
 
     axios.get("/home")
         .then((response) => window.location.href = "/home")
