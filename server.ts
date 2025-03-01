@@ -59,7 +59,7 @@ const createToken = (userData: User): [string, string] => {
         username: userData.username,
         password: userData.password
     }, process.env.ACCESS_TOKEN_SECRET || "", {
-        expiresIn: "15m"
+        expiresIn: "2h"
     });
 
     const refresh_token: string = jwt.sign({
@@ -99,20 +99,17 @@ app.get("/", (request: Request, response: Response) => {
     }
 });
 
-app.get("/login.mjs", (request: Request, response: Response) => {
-    response.sendFile(join(__dirname, "login.mjs"));
+/* Front-End file requests */
+app.get("/login.js", (request: Request, response: Response) => {
+    response.sendFile(join(__dirname, "login.js"));
 });
 
-app.get("/signup", (request: Request, response: Response) => {
-    response.sendFile(join(__dirname, "signup.html"));
+app.get("/signup.js", (request: Request, response: Response) => {
+    response.sendFile(join(__dirname, "signup.js"));
 });
 
-app.get("/signup.mjs", (request: Request, response: Response) => {
-    response.sendFile(join(__dirname, "signup.mjs"));
-});
-
-app.get("/home.mjs", (request: Request, response: Response) => {
-    response.sendFile(join(__dirname, "home.mjs"));
+app.get("/home.js", (request: Request, response: Response) => {
+    response.sendFile(join(__dirname, "home.js"));
 });
 
 app.get("/styles.css", (request: Request, response: Response) => {
@@ -131,10 +128,15 @@ app.get("/imgs/show-employees.svg", (request: Request, response: Response) => {
     response.sendFile(join(__dirname, "imgs/show-employees.svg"));
 });
 
+app.get("/signup", (request: Request, response: Response) => {
+    response.sendFile(join(__dirname, "signup.html"));
+});
+
 app.get("/home", (request: Request, response: Response) => {
     const access_token = request.cookies.access_token;
     if (!access_token) {
-        response.status(401).sendFile(join(__dirname, "index.html"));
+        console.log("User needs to authenticate again!");
+        response.redirect("/");
         return;
     }
 
@@ -143,21 +145,6 @@ app.get("/home", (request: Request, response: Response) => {
         response.status(resultCode).sendFile(join(__dirname, "home.html"));
     } else {
         console.log("User needs to authenticate again!");
-        response.redirect("/");
-    }
-});
-
-app.get("/employees", (request: Request, response: Response) => {
-    const access_token = request.cookies.access_token;
-    if (!access_token) {
-        response.status(401).sendFile(join(__dirname, "index.html"));
-        return;
-    }
-
-    const resultCode = verifyToken(access_token);
-    if (resultCode === 200) {
-        response.status(resultCode).sendFile(join(__dirname, "employees.html"));
-    } else {
         response.redirect("/");
     }
 });
@@ -186,6 +173,7 @@ app.post("/auth/login", async (request: Request, response: Response) => {
     let userId: number = -1;
     let dbPassword: string = "";
     const statement = await client.prepare("SELECT id, password FROM Employee WHERE fullname = $1");
+
     for await (const object of statement.execute([username])) {
         userId = object.id;
         dbPassword = object.password;
@@ -263,7 +251,7 @@ app.post("/refresh", (request: Request, response: Response) => {
             username: user.username,
             password: user.password
         }, process.env.ACCESS_TOKEN_SECRET || "", {
-            expiresIn: "15m"
+            expiresIn: "2h"
         });
 
         response.status(200).json({
@@ -315,13 +303,20 @@ app.post("/auth/register", async (request: Request, response: Response) => {
     }
 
     const hashedPassword: string = hash(password);
+
+    await client.query("BEGIN");
+
     const statement = await client.prepare("INSERT INTO Employee (personalId, fullname, password) VALUES ($1, $2, $3)");
     for await (const object of statement.execute([personalId, username, hashedPassword])) {
         if (object instanceof DatabaseError) {
+            await client.query("ROLLBACK");
             response.status(400).json({success: false, message: object.message});
             return;
         }
     }
+
+    await client.query("COMMIT");
+    await statement.close();
 
     response.status(201).json({success: true, message: `Employee ${username} successfully created!`});
 });

@@ -1,6 +1,5 @@
 const switchThemeButton: HTMLInputElement = document.getElementById("switchThemeButton") as HTMLInputElement;
 const username: HTMLHeadingElement = document.getElementById("username") as HTMLHeadingElement;
-const toggleSidebarBtn: HTMLButtonElement = document.getElementById("toggleSidebarBtn") as HTMLButtonElement;
 const savedTheme: string = localStorage.getItem("theme") || "";
 
 const switchTheme = () => {

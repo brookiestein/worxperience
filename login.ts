@@ -4,7 +4,6 @@ const usernameInput: HTMLInputElement = document.getElementById("usernameInput")
 const passwordInput: HTMLInputElement = document.getElementById("passwordInput") as HTMLInputElement;
 
 const signinButton: HTMLButtonElement = document.getElementById("signinButton") as HTMLButtonElement;
-const signupButton: HTMLButtonElement = document.getElementById("signupButton") as HTMLButtonElement;
 
 const savedTheme: string = localStorage.getItem("theme") || "";
 let timeout: ReturnType<typeof setTimeout>;
@@ -77,7 +76,6 @@ signinButton.addEventListener("click", async () => {
 
     const username = usernameInput.value;
     let token: string = "";
-    let expiresOn: string = "";
     await axios.post<Response>("/auth/login", {
         "username": username,
         "password": passwordInput.value

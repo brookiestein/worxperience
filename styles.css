@@ -1,3 +1,7 @@
+.switch-theme {
+    color: #26d9ba;
+}
+
 #signinButton, #signupButton, #registerButton, #backButton {
     background-color: #26d9ba;
     color: black;
@@ -50,7 +54,7 @@
 }
 
 .logo-text {
-    background: linear-gradient(45deg, #6b8cff, #8b9fff);
+    background: #26d9ba;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     transition: opacity 0.3s ease;

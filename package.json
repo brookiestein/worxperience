@@ -2,10 +2,12 @@
   "name": "bootstrap",
   "version": "1.0.0",
   "description": "Learning Bootstrap",
-  "main": "server.mjs",
+  "main": "server.js",
   "type": "module",
   "scripts": {
-    "dev": "nodemon --env-file=.env --ext ts --exec tsx server.mts",
+    "compile": "tsc --target ESNext --module Node16 --moduleResolution Node16 *.ts",
+    "start": "nodemon --env-file=.env --ext ts --exec tsx server.ts",
+    "dev": "npm run compile && npm run start",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Brayan M. Salazar",
