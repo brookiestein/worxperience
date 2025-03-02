@@ -15,6 +15,7 @@ interface Response {
     success: boolean,
     message: string,
     token: string,
+    usertype: string,
 };
 
 const switchTheme = () => {
@@ -76,6 +77,7 @@ signinButton.addEventListener("click", async () => {
 
     const username = usernameInput.value;
     let token: string = "";
+    let usertype: string = "";
     await axios.post<Response>("/auth/login", {
         "username": username,
         "password": passwordInput.value
@@ -84,6 +86,7 @@ signinButton.addEventListener("click", async () => {
         passwordInput.value = "";
         showMessage("Access Granted!");
         token = (response.data as Response).token || "";
+        usertype = (response.data as Response).usertype || "";
     }).catch((error) => {
         showMessage(error.response.data.message);
     });
@@ -95,6 +98,7 @@ signinButton.addEventListener("click", async () => {
 
     document.cookie = `access_token = ${token}`;
     localStorage.setItem("username", username);
+    localStorage.setItem("usertype", usertype);
 
     axios.get("/home")
         .then((response) => window.location.href = "/home")

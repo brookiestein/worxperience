@@ -1,7 +1,3 @@
-.switch-theme {
-    color: #26d9ba;
-}
-
 #signinButton, #signupButton, #registerButton, #backButton {
     background-color: #26d9ba;
     color: black;
@@ -24,9 +20,10 @@
 
 .sidebar {
     width: var(--sidebar-width);
-    height: 95vh;
+    height: 100vh;
     background: linear-gradient(135deg, #1a1c2e 0%, #16181f 100%);
     transition: all 0.3s ease;
+    z-index: 0;
 }
 
 .sidebar.collapsed {
@@ -108,4 +105,10 @@
 
 .profile-info {
     transition: opacity 0.2s ease;
+}
+
+.main-content {
+    padding-left: 17%;
+    padding-right: 5%;
+    z-index: 1;
 }
