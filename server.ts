@@ -7,7 +7,7 @@ import {join, dirname} from "node:path";
 import {connect, DatabaseError} from "ts-postgres";
 import {sha512} from "js-sha512";
 import jwt, {VerifyErrors, JwtPayload} from "jsonwebtoken";
-import Joi from "joi";
+import Joi, {ValidationError} from "joi";
 
 const __dirname = dirname(fileURLToPath(import.meta.url)); const port: number = 8000;
 const app = express();
@@ -109,7 +109,7 @@ const getPermissions = async (username: string): Promise<[string, boolean]> => {
 
     let idCharge: number;
     let statement = await client.prepare("SELECT id, id_charge FROM Employees WHERE username = $1");
-    for await (const object of statement.execute([username])) {
+    for await (const object of statement.execute([value.username])) {
         idCharge = object.id_charge;
     }
 
@@ -236,7 +236,7 @@ app.get("/signup", (request: Request, response: Response) => {
 app.get("/home", (request: Request, response: Response) => {
     const access_token = request.cookies.access_token;
     if (!access_token) {
-        console.log("User needs to authenticate again!");
+        console.log("Access token not found! User needs to authenticate again!");
         response.redirect("/");
         return;
     }
@@ -245,7 +245,7 @@ app.get("/home", (request: Request, response: Response) => {
     if (resultCode === 200) {
         response.status(resultCode).sendFile(join(__dirname, "home.html"));
     } else {
-        console.log("User needs to authenticate again!");
+        console.log("Access token is not valid; user needs to authenticate again!");
         response.redirect("/");
     }
 });
@@ -253,13 +253,14 @@ app.get("/home", (request: Request, response: Response) => {
 app.get("/auth/employees/view", async (request: Request, response: Response) => {
     const username = request.headers.username as string;
     if (!username) {
-        console.log("Username wasn't provided.");
+        console.log("Not authorized to view employees; username wasn't provided.");
         response.status(401).json({success: false, message: "Unauthorized."});
         return;
     }
 
     await isUserAuthorized(username, "view")
             .then(([authorized, permissions]) => {
+                console.log(`User ${username} has permissions to view employees!`);
                 setAccessPermissionsCookie(permissions, {plain: "view_employees"}, response);
                 response.status(200).json({success: true});
             })
@@ -272,16 +273,19 @@ app.get("/auth/employees/view", async (request: Request, response: Response) => 
 app.get("/auth/employees/edit/:username", async (request: Request, response: Response) => {
     const username = request.params.username as string;
     if (!username) {
+        console.log("Not authorized to edit employees; username wasn't provided.");
         response.status(401).json({success: false, message: "Unauthorized."});
         return;
     }
 
     await isUserAuthorized(username, "updateEmployee")
             .then(([authorized, permissions]) => {
+                console.log(`User ${username} has permissions to edit employees!`);
                 setAccessPermissionsCookie(permissions, {plain: "edit_employees"}, response);
                 response.status(200).json({success: true});
             })
             .catch(([authorized, permissions]) => {
+                console.log("User has no permissions to edit employees.");
                 response.status(401).json({success: false, message: "Unauthorized."});
             });
 });
@@ -293,7 +297,11 @@ app.get("/employees", (request: Request, response: Response) => {
         if (verifyToken(token) === 200) {
             response.status(200).sendFile(join(__dirname, "employees.html"));
             return;
+        } else {
+            console.log("Access token is not valid; user has no permissions to view employees.");
         }
+    } else {
+        console.log("Access token not found! User has no permissions to view employees.");
     }
 
     response.status(401).json({success: false, message: "Unauthorized."});
@@ -311,6 +319,7 @@ app.get("/employees/edit", (request: Request, response: Response) => {
                     maxAge: 60 * 1000
                 });
             }
+
             response.status(200).sendFile(join(__dirname, "edit_employees.html"));
             return;
         }
@@ -325,11 +334,12 @@ app.get("/employees/all", async (request: Request, response: Response) => {
     const token = request.cookies.view_employees;
     if (token) {
         if (verifyToken(token) !== 200) {
-            response.status(401).json({success: false, message: "Unauthorized."});
+            response.status(401).json({success: false, message: "Unauthorized; token is not valid."});
             return;
         }
     } else {
-        response.status(401).json({success: false, message: "Unauthorized."});
+        response.status(401).json({success: false, message: "Unauthorized; token not found."});
+        return;
     }
 
     const users: {
@@ -337,11 +347,13 @@ app.get("/employees/all", async (request: Request, response: Response) => {
         last_name: string,
         username: string,
         charge: string,
+        personalId: string,
+        salary: string,
         permissions: string,
         bypass: boolean
     }[] = [];
 
-    const statement = await client.prepare("SELECT first_name, last_name, username, \
+    const statement = await client.prepare("SELECT first_name, last_name, username, personal_id, salary, \
                                            description, permissions, bypass \
                                            FROM Employees \
                                            JOIN Charges ON Charges.id = Employees.id_charge");
@@ -351,6 +363,8 @@ app.get("/employees/all", async (request: Request, response: Response) => {
             first_name: object.first_name,
             last_name: object.last_name,
             username: object.username,
+            personalId: object.personal_id,
+            salary: object.salary,
             charge: object.description,
             permissions: object.permissions,
             bypass: object.bypass
@@ -362,6 +376,22 @@ app.get("/employees/all", async (request: Request, response: Response) => {
     } else {
         response.status(404).json({success: false, message: "There's no users to show."});
     }
+});
+
+app.get("/charges", async (request: Request, response: Response) => {
+    const token = request.cookies.edit_employees;
+    if (!token) {
+        response.status(401).json({success: false, message: "Unauthorized; token not found!"});
+        return;
+    }
+
+    const charges: string[] = [];
+    const statement = await client.prepare("SELECT description FROM Charges");
+    for await (const object of statement.execute()) {
+        charges.push(object.description);
+    }
+
+    response.status(200).json(charges);
 });
 
 app.post("/auth/login", async (request: Request, response: Response) => {
@@ -393,7 +423,7 @@ app.post("/auth/login", async (request: Request, response: Response) => {
                                            JOIN Charges ON Employees.id_charge = Charges.id \
                                            WHERE username = $1");
 
-    for await (const object of statement.execute([username])) {
+    for await (const object of statement.execute([value.username])) {
         userId = object.id;
         dbPassword = object.password;
         usertype = object.description;
@@ -434,7 +464,7 @@ app.post("/auth/login", async (request: Request, response: Response) => {
         usertype: usertype
     });
 
-    const user = users.find((user) => user.username === username);
+    const user = users.find((user) => user.username === value);
 
     if (user) {
         user.refresh_token = refresh_token;
@@ -452,13 +482,13 @@ app.post("/auth/login", async (request: Request, response: Response) => {
 app.post("/refresh", (request: Request, response: Response) => {
     const refresh_token = request.cookies.jwt;
     if (!refresh_token) {
-        response.status(401).json({success: false, message: "Unauthorized"});
+        response.status(401).json({success: false, message: "Unauthorized; refresh token not found!"});
         return;
     }
 
     const user = users.find((user) => user.refresh_token === refresh_token);
     if (!user) {
-        response.status(401).json({success: false, message: "Unauthorized"});
+        response.status(401).json({success: false, message: "Unauthorized; user is not logged in!"});
         return;
     }
 
@@ -466,7 +496,7 @@ app.post("/refresh", (request: Request, response: Response) => {
                process.env.REFRESH_TOKEN_SECRET || "",
                (error: VerifyErrors | null, decoded: string | JwtPayload | undefined) => {
         if (error) {
-            return response.status(401).json({success: false, message: "Unauthorized"});
+            return response.status(401).json({success: false, message: "Unauthorized; refresh token is not valid!"});
         }
 
         const access_token = jwt.sign({
@@ -525,12 +555,12 @@ app.post("/auth/register", async (request: Request, response: Response) => {
         return;
     }
 
-    const hashedPassword: string = hash(password);
+    const hashedPassword: string = hash(value.password);
 
     await client.query("BEGIN");
 
     const statement = await client.prepare("INSERT INTO Employee (personalId, fullname, password) VALUES ($1, $2, $3)");
-    for await (const object of statement.execute([personalId, username, hashedPassword])) {
+    for await (const object of statement.execute([value.personalId, value.username, hashedPassword])) {
         if (object instanceof DatabaseError) {
             await client.query("ROLLBACK");
             response.status(400).json({success: false, message: object.message});
@@ -542,6 +572,104 @@ app.post("/auth/register", async (request: Request, response: Response) => {
     await statement.close();
 
     response.status(201).json({success: true, message: `Employee ${username} successfully created!`});
+});
+
+const validateAndClearIncomingData = (edited_field: string, new_value: string, response: Response): string | undefined => {
+    const schema = Joi.object({
+        first_name: Joi.string().min(3).max(30).pattern(new RegExp("^[a-zA-z].+")),
+        last_name: Joi.string().alphanum().min(3).max(30),
+        personal_id: Joi.string().alphanum().min(11).max(13).pattern(new RegExp("^[0-9]{3}-?[0-9]{7}-?[0-9]$")),
+        salary: Joi.number().min(1),
+        charge: Joi.string().pattern(new RegExp("(Director|Manager|InCharge|Coordinator|Analyst|AdminIT)"))
+    });
+
+    let error: ValidationError;
+    let value: {
+        first_name: string;
+        last_name: string;
+        personal_id: string;
+        salary: number;
+        charge: string;
+    };
+
+    switch (edited_field) {
+    case "first_name":
+        ({error, value} = schema.validate({first_name: new_value}));
+        if (error) {
+            const message = `Name ${new_value} is not valid.`;
+            console.log(message);
+            response.status(400).json({success: false, message: message });
+            return undefined;
+        }
+        return value.first_name;
+    case "last_name":
+        ({error, value} = schema.validate({last_name: new_value}));
+        if (error) {
+            const message = `Last name ${new_value} is not valid.`;
+            console.log(message);
+            response.status(400).json({success: false, message: message});
+            return undefined;
+        }
+        return value.last_name;
+    case "personal_id":
+        ({error, value} = schema.validate({personal_id: new_value}));
+        if (error) {
+            const message = `Personal ID ${new_value} is not valid.`;
+            console.log(message);
+            response.status(400).json({success: false, message: message});
+            return undefined;
+        }
+        return value.personal_id;
+    case "salary":
+        ({error, value} = schema.validate({salary: new_value}));
+        if (error) {
+            const message = `Salary ${new_value} is not valid.`;
+            console.log(message);
+            response.status(400).json({success: false, message: message});
+            return undefined;
+        }
+        return `${value.salary}`;
+    case "charge":
+        ({error, value} = schema.validate({charge: new_value}));
+        if (error) {
+            const message = `Charge ${new_value} is not valid.`;
+            response.status(400).json({success: false, message: message});
+            return undefined;
+        }
+        return value.charge;
+    default:
+        response.status(400).json({success: false, message: `Field '${edited_field}' is invalid.`});
+        return undefined;
+    }
+}
+
+app.patch("/updateEmployee", async (request: Request, response: Response) => {
+    const edited_field = request.body.edited_field;
+    const new_value = request.body.new_value;
+    const username = request.body.username;
+
+    if (!request.body || !edited_field || !new_value || !username) {
+        response.status(400).json({success: false, message: "No employee data was provided."});
+        return;
+    }
+
+    const value = validateAndClearIncomingData(edited_field, new_value, response);
+    if (!value) {
+        return;
+    }
+
+    await client.query("BEGIN");
+
+    await client.query(`UPDATE Employees SET ${edited_field} = '${value}' WHERE username = '${username}'`)
+                .then(async () => {
+                    await client.query("COMMIT");
+                    response.status(200).json({success: true, message: `Field ${edited_field} updated to ${value}`, new_value: value});
+                })
+                .catch(async (error) => {
+                    console.log(error);
+                    await client.query("ROLLBACK");
+                    response.status(400).json({success: false, message: `An error occurred while updating Employee ${username}!`});
+                });
 });
 
 app.delete("/user/logout/:username", (request: Request, response: Response) => {

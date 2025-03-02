@@ -28,6 +28,8 @@ type Employee = {
     last_name: string;
     username: string;
     charge: string;
+    personalId: string,
+    salary: string,
     permissions: string;
     bypass: boolean;
 };
@@ -58,6 +60,8 @@ const setEmployees = (employees: Employee[]) => {
         const firstName = newRow.insertCell();
         const lastName = newRow.insertCell();
         const username = newRow.insertCell();
+        const personalId = newRow.insertCell();
+        const salary = newRow.insertCell();
         const charge = newRow.insertCell();
         const edit = newRow.insertCell();
 
@@ -73,6 +77,8 @@ const setEmployees = (employees: Employee[]) => {
         firstName.appendChild(document.createTextNode(employee.first_name));
         lastName.appendChild(document.createTextNode(employee.last_name));
         username.appendChild(document.createTextNode(employee.username));
+        personalId.appendChild(document.createTextNode(employee.personalId));
+        salary.appendChild(document.createTextNode(employee.salary));
         charge.appendChild(document.createTextNode(employee.charge));
         edit.appendChild(editTag);
     }

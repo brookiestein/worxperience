@@ -65,8 +65,42 @@
                 </div>
             </nav>
         </header>
-
-        <section class="main-content">
+        <section class="main-content employees-data">
+            <form id="employees-data-form">
+                <div class="row">
+                    <div class="col">
+                        <label for="username">Username</label>
+                        <select class="form-control" id="username-input">
+                        </select>
+                    </div>
+                    <div class="col">
+                        <label for="first-name">First Name</label>
+                        <input type="text" class="form-control" id="first-name">
+                    </div>
+                    <div class="col">
+                        <label for="last-name">Last Name</label>
+                        <input type="text" class="form-control" id="last-name">
+                    </div>
+                    <div class="col">
+                        <label for="personal-id">Personal ID</label>
+                        <input type="text" class="form-control" id="personal-id">
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col">
+                        <label for="salary">Salary</label>
+                        <input type="number" class="form-control" id="salary">
+                    </div>
+                    <div class="col">
+                        <label for="charge">Charge</label>
+                        <select class="form-control" id="charge">
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <button class="btn btn-primary" type="submit" id="updateEmployee">Update</button>
+                </div>
+            </form>
         </section>
     </body>
 </html>
