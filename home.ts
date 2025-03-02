@@ -47,5 +47,11 @@ editEmployees.addEventListener("click", async () => {
 });
 
 ponche.addEventListener("click", async () => {
-
+    await axios.get("/ponche")
+            .then((response) => {
+                window.location.href = "/ponche";
+            })
+            .catch((error) => {
+                alert(error.response.data.message);
+            });
 });

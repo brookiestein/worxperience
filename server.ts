@@ -209,6 +209,10 @@ app.get("/edit_employees.js", (request: Request, response: Response) => {
     response.sendFile(join(__dirname, "edit_employees.js"));
 });
 
+app.get("/ponche.js", (request: Request, response: Response) => {
+    response.sendFile(join(__dirname, "ponche.js"));
+});
+
 app.get("/styles.css", (request: Request, response: Response) => {
     response.sendFile(join(__dirname, "styles.css"));
 });
@@ -227,6 +231,10 @@ app.get("/imgs/logout.svg", (request: Request, response: Response) => {
 
 app.get("/imgs/show-employees.svg", (request: Request, response: Response) => {
     response.sendFile(join(__dirname, "imgs/show-employees.svg"));
+});
+
+app.get("/imgs/editPonche.svg", (request: Request, response: Response) => {
+    response.sendFile(join(__dirname, "imgs/editPonche.svg"));
 });
 
 app.get("/signup", (request: Request, response: Response) => {
@@ -290,6 +298,25 @@ app.get("/auth/employees/edit/:username", async (request: Request, response: Res
             });
 });
 
+app.get("/auth/ponche/edit/:username", async (request: Request, response: Response) => {
+    const username = request.params.username as string;
+    if (!username) {
+        console.log("Not authorized to edit ponche; username wasn't provided.");
+        response.status(401).json({success: false, message: "Unauthorized."});
+        return;
+    }
+
+    await isUserAuthorized(username, "editPonche")
+            .then(([authorized, permissions]) => {
+                console.log(`User ${username} has permissions to edit ponche!`);
+                setAccessPermissionsCookie(permissions, {plain: "edit_ponche"}, response);
+                response.status(200).json({success: true});
+            })
+            .catch(([authorized, permissions]) => {
+                console.log("User has no permissions to edit ponche.");
+                response.status(401).json({success: false, message: "Unauthorized."});
+            });
+});
 
 app.get("/employees", (request: Request, response: Response) => {
     const token = request.cookies.view_employees;
@@ -392,6 +419,48 @@ app.get("/charges", async (request: Request, response: Response) => {
     }
 
     response.status(200).json(charges);
+});
+
+app.get("/ponche", (request: Request, response: Response) => {
+    response.status(200).sendFile(join(__dirname, "ponche.html"));
+});
+
+app.get("/ponche/:employee", async (request: Request, response: Response) => {
+    const schema = Joi.object({
+        username: Joi.string().min(3).max(30)
+    });
+
+    const {error, value} = schema.validate(request.params.employee);
+    if (error) {
+        response.status(400).json({success: false, message: `Employee name '${request.params.employee}' is not valid.`});
+        return;
+    }
+
+    const statement = await client.prepare("SELECT in_date, out_date \
+                                           FROM Ponche \
+                                           JOIN Employees \
+                                           ON Ponche.employee_id = Employees.id WHERE username = $1");
+
+    let in_date: string = "";
+    let out_date: string = "";
+    for await (const object of statement.execute([value.username])) {
+        in_date = object.in_date;
+        out_date = object.out_date;
+    }
+
+    await statement.close();
+
+    response.status(200).json({success: true, in_date: in_date, out_date: out_date});
+});
+
+app.get("/ponche/edit", (request: Request, response: Response) => {
+    const token = request.cookies.edit_ponche;
+    if (!token) {
+        response.status(401).json({success: false, message: "Not authorized to edit ponche."});
+        return;
+    }
+
+    response.status(200).sendFile(join(__dirname, "edit_ponche.html"));
 });
 
 app.post("/auth/login", async (request: Request, response: Response) => {
@@ -574,6 +643,43 @@ app.post("/auth/register", async (request: Request, response: Response) => {
     response.status(201).json({success: true, message: `Employee ${username} successfully created!`});
 });
 
+app.post("/ponche/in/:employee", async (request: Request, response: Response) => {
+    const username = request.params.employee;
+    const schema = Joi.object({
+        username: Joi.string().min(3).max(30)
+    });
+
+    const {error, value} = schema.validate({username: username});
+    if (error) {
+        response.status(400).json({success: false, message: `Employee name '${username}' is not valid.`});
+        return;
+    }
+
+    let statement = await client.prepare("SELECT id FROM Employees WHERE username = $1");
+    let employee_id: number = -1;
+    for await (const object of statement.execute([value.username])) {
+        employee_id = object.id;
+    }
+
+    await statement.close();
+    await client.query("BEGIN");
+
+    const date: Date = new Date(Date.now());
+    const in_date: string = date.toISOString();
+
+    const result = await client.query("INSERT INTO Ponche (in_date, employee_id) VALUES ($1, $2)", [in_date, employee_id]);
+    if (result instanceof DatabaseError) {
+        await client.query("ROLLBACK");
+        response.status(400).json({
+            success: false,
+            message: `An error occurred while setting ${value.username}'s ponch.'`
+        });
+        return;
+    }
+
+    response.status(200).json({success: true, message: `Employee '${value.username}' has ponched!`});
+});
+
 const validateAndClearIncomingData = (edited_field: string, new_value: string, response: Response): string | undefined => {
     const schema = Joi.object({
         first_name: Joi.string().min(3).max(30).pattern(new RegExp("^[a-zA-z].+")),
@@ -641,7 +747,7 @@ const validateAndClearIncomingData = (edited_field: string, new_value: string, r
         response.status(400).json({success: false, message: `Field '${edited_field}' is invalid.`});
         return undefined;
     }
-}
+};
 
 app.patch("/updateEmployee", async (request: Request, response: Response) => {
     const edited_field = request.body.edited_field;

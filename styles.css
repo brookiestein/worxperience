@@ -113,10 +113,14 @@
     z-index: 1;
 }
 
-.employees-data {
+.employees-data, .ponche {
     padding-top: 15%;
 }
 
 #updateEmployee {
     margin-top: 5px;
+}
+
+#editPonche {
+    margin-top: 30px;
 }
